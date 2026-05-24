@@ -12,6 +12,8 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.value.default.type: "com.example.fulfillmentservice.event.OrderEvent"
+        spring.json.use.type.headers: "false"
 
 server:
   port: 8082

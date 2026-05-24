@@ -16,9 +16,16 @@ spec:
       containers:
         - name: config-server
           image: config-server:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8888
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config-repo
+      volumes:
+        - name: config-volume
+          configMap:
+            name: config-repo-properties
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,12 +44,18 @@ spec:
       containers:
         - name: order-service
           image: order-service:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
           env:
             - name: SPRING_CONFIG_IMPORT
               value: "optional:configserver:http://config-server:8888"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/orderdb"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+            - name: MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+              value: "http://zipkin:9411/api/v2/spans"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -61,9 +74,15 @@ spec:
       containers:
         - name: fulfillment-service
           image: fulfillment-service:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
           env:
             - name: SPRING_CONFIG_IMPORT
               value: "optional:configserver:http://config-server:8888"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/orderdb"
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+            - name: MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+              value: "http://zipkin:9411/api/v2/spans"

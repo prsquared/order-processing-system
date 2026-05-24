@@ -96,16 +96,77 @@ curl -X POST http://localhost:8081/api/orders \
 
 ## ☸️ Kubernetes Deployment
 
-Basic Kubernetes manifests are provided in the `k8s/` directory.
+Detailed Kubernetes manifests are provided in the `k8s/` directory to deploy the microservices and backing infrastructure services natively inside a cluster.
 
-1. Build the local Docker images:
+### 1. Build and Package the Applications
+Compile and package the Spring Boot applications:
 ```bash
-cd config-server && docker build -t config-server:latest .
-cd ../order-service && docker build -t order-service:latest .
-cd ../fulfillment-service && docker build -t fulfillment-service:latest .
+cd config-server && ./mvnw clean package -DskipTests
+cd ../order-service && ./mvnw clean package -DskipTests
+cd ../fulfillment-service && ./mvnw clean package -DskipTests
+cd ..
 ```
-2. Apply the manifests:
+
+### 2. Build the Local Docker Images
+Ensure your Kubernetes context is set to your local cluster (e.g., `docker-desktop`). If using the containerd image store in Docker Desktop, disable **"Use containerd for pulling and storing images"** in settings first so that Kubernetes can access these local images.
+
+Build the images from the root directory:
 ```bash
+docker build -t config-server:latest config-server
+docker build -t order-service:latest order-service
+docker build -t fulfillment-service:latest fulfillment-service
+```
+
+### 3. Create the Configuration ConfigMaps
+Create the ConfigMaps required for the Config Server native files and database initializations:
+```bash
+kubectl create configmap config-repo-properties --from-file=config-repo/
+kubectl create configmap postgres-init-sql --from-file=init-db.sql
+```
+
+### 4. Deploy Infrastructure and Applications
+Apply all Kubernetes manifests:
+```bash
+# 1. Deploy Databases, Messaging, and Tracing
+kubectl apply -f k8s/postgres.yaml
+kubectl apply -f k8s/kafka.yaml
+kubectl apply -f k8s/zipkin.yaml
+
+# 2. Deploy Prometheus and Grafana
+kubectl apply -f k8s/monitoring.yaml
+
+# 3. Deploy the Microservices
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 ```
+
+Check the pod status until all pods are healthy and running:
+```bash
+kubectl get pods
+```
+
+### 5. Access the Services (Port-Forwarding)
+Since Kubernetes NodePorts can sometimes fail to route on the host locally, use `kubectl port-forward` to establish reliable direct tunnels:
+```bash
+# Run each in separate terminal windows:
+kubectl port-forward service/order-service 8081:8081
+kubectl port-forward service/fulfillment-service 8082:8082
+kubectl port-forward service/zipkin 9411:9411
+kubectl port-forward service/prometheus 9090:9090
+kubectl port-forward service/grafana 3000:3000
+```
+
+### 6. Testing the Kubernetes Flow
+Send a test POST request using PowerShell:
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8081/api/orders" -Method Post -Headers @{"Content-Type" = "application/json"} -Body '{"customerId": "CUST123", "items": ["Laptop", "Mouse"], "totalAmount": 1200.00}'
+```
+Or using Command Prompt / Bash:
+```bash
+curl.exe -g -X POST http://localhost:8081/api/orders -H "Content-Type: application/json" -d "{\"customerId\": \"CUST123\", \"items\": [\"Laptop\", \"Mouse\"], \"totalAmount\": 1200.00}"
+```
+Verify the processing logs:
+```bash
+kubectl logs -l app=fulfillment-service -f
+```
+
