@@ -48,19 +48,19 @@ You need to start the Spring Boot applications. **Important: Start the Config Se
 **Terminal 1 (Config Server):**
 ```bash
 cd config-server
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 **Terminal 2 (Order Service):**
 ```bash
 cd order-service
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 **Terminal 3 (Fulfillment Service):**
 ```bash
 cd fulfillment-service
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 ## 🧪 Testing the System
@@ -101,9 +101,9 @@ Detailed Kubernetes manifests are provided in the `k8s/` directory to deploy the
 ### 1. Build and Package the Applications
 Compile and package the Spring Boot applications:
 ```bash
-cd config-server && ./mvnw clean package -DskipTests
-cd ../order-service && ./mvnw clean package -DskipTests
-cd ../fulfillment-service && ./mvnw clean package -DskipTests
+cd config-server && mvn clean package -DskipTests
+cd ../order-service && mvn clean package -DskipTests
+cd ../fulfillment-service && mvn clean package -DskipTests
 cd ..
 ```
 
